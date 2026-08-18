@@ -64,7 +64,7 @@ async function handleResume(
   state: BusinessObserverState
 ): Promise<Partial<BusinessObserverState>> {
   if (!state.businessId) return {};
-  const biz = getBusinessById(state.businessId);
+  const biz = await getBusinessById(state.businessId);
   if (!biz) return {};
   const missing = getMissingFields(biz);
   return {

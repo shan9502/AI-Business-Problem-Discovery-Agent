@@ -38,9 +38,9 @@ export async function validateAndWrite(
     if (state.intent === "confirm_yes") {
       // User confirmed — use matched business
       businessId = state.pendingBusinessMatch.id;
-      business = getBusinessById(businessId);
+      business = await getBusinessById(businessId);
       if (Object.keys(updates).length > 0 && business) {
-        business = updateBusiness(businessId, updates);
+        business = await updateBusiness(businessId, updates);
       }
       const missing = business ? getMissingFields(business) : [];
       return {
@@ -51,7 +51,7 @@ export async function validateAndWrite(
       };
     } else {
       // confirm_no or new discover — create a new business
-      business = createBusiness(updates);
+      business = await createBusiness(updates);
       businessId = business.id;
       const missing = getMissingFields(business);
       return {
@@ -70,7 +70,7 @@ export async function validateAndWrite(
       (state.businessContext?.company_name as string | undefined);
 
     if (nameCandidate) {
-      const results = searchBusinesses(nameCandidate);
+      const results = await searchBusinesses(nameCandidate);
 
       if (results.length === 1) {
         // Found a single strong match — ask confirmation (#12)
@@ -92,14 +92,14 @@ export async function validateAndWrite(
     }
 
     // No match — create new business
-    business = createBusiness(updates);
+    business = await createBusiness(updates);
     businessId = business.id;
   } else {
     // Update existing
     if (Object.keys(updates).length > 0) {
-      business = updateBusiness(businessId, updates);
+      business = await updateBusiness(businessId, updates);
     } else {
-      business = getBusinessById(businessId);
+      business = await getBusinessById(businessId);
     }
   }
 

@@ -1,8 +1,8 @@
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 import { runAgent } from "./lib/agent/graph";
-import { sqlite } from "./lib/db/client";
-import { businesses, messages, conversations } from "./lib/db/schema";
+import { db, sqlite } from "./lib/db/client.sqlite";
+import { businesses, messages, conversations } from "./lib/db/schema/sqlite";
 import { eq } from "drizzle-orm";
 
 async function delay(ms: number) {

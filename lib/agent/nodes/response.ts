@@ -8,8 +8,8 @@ export async function generateResponse(
   // ── If validation.ts already set a finalResponse (pending confirmation) ──────
   if (state.pendingBusinessMatch && state.finalResponse) {
     if (state.conversationId) {
-      addMessage(state.conversationId, "user", state.userMessage);
-      addMessage(state.conversationId, "assistant", state.finalResponse);
+      await addMessage(state.conversationId, "user", state.userMessage);
+      await addMessage(state.conversationId, "assistant", state.finalResponse);
     }
     return { finalResponse: state.finalResponse };
   }
@@ -33,8 +33,8 @@ Keep the response short and natural.`;
 
     const response = await callGemini(skipPrompt);
     if (state.conversationId) {
-      addMessage(state.conversationId, "user", state.userMessage);
-      addMessage(state.conversationId, "assistant", response);
+      await addMessage(state.conversationId, "user", state.userMessage);
+      await addMessage(state.conversationId, "assistant", response);
     }
     return {
       finalResponse: response,
@@ -55,8 +55,8 @@ Keep the response short and natural.`;
     }
 
     if (state.conversationId) {
-      addMessage(state.conversationId, "user", state.userMessage);
-      addMessage(state.conversationId, "assistant", state.nextQuestion);
+      await addMessage(state.conversationId, "user", state.userMessage);
+      await addMessage(state.conversationId, "assistant", state.nextQuestion);
       await maybeSummarize(state);
     }
     return { finalResponse: state.nextQuestion, askedFields };
@@ -69,8 +69,8 @@ Keep the response short and natural.`;
         "I wasn't able to complete that database query. " +
         (state.sqlError ?? "Please try rephrasing your question.");
       if (state.conversationId) {
-        addMessage(state.conversationId, "user", state.userMessage);
-        addMessage(state.conversationId, "assistant", response);
+        await addMessage(state.conversationId, "user", state.userMessage);
+        await addMessage(state.conversationId, "assistant", response);
       }
       return { finalResponse: response };
     }
@@ -92,8 +92,8 @@ Provide a clear, helpful summary of these results.
 
     const response = await callGemini(prompt);
     if (state.conversationId) {
-      addMessage(state.conversationId, "user", state.userMessage);
-      addMessage(state.conversationId, "assistant", response);
+      await addMessage(state.conversationId, "user", state.userMessage);
+      await addMessage(state.conversationId, "assistant", response);
     }
     return { finalResponse: response };
   }
@@ -135,8 +135,8 @@ Provide a natural, concise response.`;
 
   const response = await callGemini(prompt);
   if (state.conversationId) {
-    addMessage(state.conversationId, "user", state.userMessage);
-    addMessage(state.conversationId, "assistant", response);
+    await addMessage(state.conversationId, "user", state.userMessage);
+    await addMessage(state.conversationId, "assistant", response);
     await maybeSummarize(state);
   }
   return { finalResponse: response };
@@ -165,7 +165,7 @@ ${transcript}`;
 
   try {
     const summary = await callGemini(summaryPrompt);
-    updateConversationSummary(state.conversationId, summary);
+    await updateConversationSummary(state.conversationId, summary);
   } catch {
     // Non-fatal
   }

@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import path from "path";
-import * as schema from "./schema";
+import * as schema from "./schema/sqlite";
 
 const DB_PATH = process.env.DATABASE_URL ?? "./data/business_observer.db";
 const absolutePath = path.resolve(DB_PATH);

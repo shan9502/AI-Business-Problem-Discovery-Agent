@@ -17,10 +17,10 @@ export async function loadContext(
 
   // Load conversation context
   if (state.conversationId) {
-    const conv = getConversation(state.conversationId);
+    const conv = await getConversation(state.conversationId);
     if (conv) {
       updates.conversationSummary = conv.summary ?? undefined;
-      updates.recentMessages = getRecentMessages(state.conversationId, 10);
+      updates.recentMessages = await getRecentMessages(state.conversationId, 10);
 
       // Load associated business if conversation references one
       if (conv.business_id && !state.businessId) {
@@ -32,7 +32,7 @@ export async function loadContext(
   // Load business context
   const bizId = state.businessId ?? updates.businessId;
   if (bizId) {
-    const biz = getBusinessById(bizId);
+    const biz = await getBusinessById(bizId);
     if (biz) {
       updates.businessContext = biz as unknown as Record<string, unknown>;
     }

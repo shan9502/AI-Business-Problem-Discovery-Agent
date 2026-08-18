@@ -1,7 +1,7 @@
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 import { runAgent } from "./lib/agent/graph";
-import { sqlite } from "./lib/db/client";
+import { sqlite } from "./lib/db/client.sqlite";
 
 async function runOutOfOrderTest() {
   console.log("=====================================");

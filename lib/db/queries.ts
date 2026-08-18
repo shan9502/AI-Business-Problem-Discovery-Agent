@@ -1,131 +1,25 @@
-import { eq, like, or, sql as drizzleSql } from "drizzle-orm";
-import { db } from "./client";
-import {
-  businesses,
-  conversations,
-  messages,
-  type Business,
-  type Message,
-  type NewBusiness,
-} from "./schema";
-import { BUSINESS_FIELDS } from "@/lib/config/fields";
+import * as sqliteQueries from "./queries.sqlite";
+import * as pgQueries from "./queries.pg";
 
-// ─── Business CRUD ───────────────────────────────────────────────────────────
-
-export function createBusiness(data: Partial<NewBusiness>): Business {
-  const result = db
-    .insert(businesses)
-    .values(data)
-    .returning()
-    .get();
-  return result;
+export function isPostgres(): boolean {
+  return process.env.DATABASE_PROVIDER === "postgres";
 }
 
-export function getBusinessById(id: number): Business | undefined {
-  return db.select().from(businesses).where(eq(businesses.id, id)).get();
-}
+export const dbQueries = isPostgres() ? pgQueries : sqliteQueries;
 
-export function updateBusiness(
-  id: number,
-  updates: Partial<NewBusiness>
-): Business | undefined {
-  return db
-    .update(businesses)
-    .set({ ...updates, updated_at: new Date().toISOString() })
-    .where(eq(businesses.id, id))
-    .returning()
-    .get();
-}
+// For convenience, we can export individual functions as well so callers don't have to rewrite everything
+export const createBusiness = dbQueries.createBusiness;
+export const getBusinessById = dbQueries.getBusinessById;
+export const updateBusiness = dbQueries.updateBusiness;
+export const searchBusinesses = dbQueries.searchBusinesses;
+export const getAllBusinesses = dbQueries.getAllBusinesses;
+export const getMissingFields = dbQueries.getMissingFields;
 
-export function searchBusinesses(query: string): Business[] {
-  const like_q = `%${query}%`;
-  return db
-    .select()
-    .from(businesses)
-    .where(
-      or(
-        like(businesses.company_name, like_q),
-        like(businesses.industry, like_q),
-        like(businesses.workflow, like_q),
-        like(businesses.department, like_q)
-      )
-    )
-    .all();
-}
+export const createConversation = dbQueries.createConversation;
+export const getConversation = dbQueries.getConversation;
+export const updateConversationSummary = dbQueries.updateConversationSummary;
 
-export function getAllBusinesses(): Business[] {
-  return db.select().from(businesses).all();
-}
+export const addMessage = dbQueries.addMessage;
+export const getRecentMessages = dbQueries.getRecentMessages;
 
-/** Returns field names that are null or empty in a given business record */
-export function getMissingFields(business: Business): string[] {
-  const FIELD_NAMES = Object.keys(BUSINESS_FIELDS) as Array<
-    keyof typeof BUSINESS_FIELDS
-  >;
-  return FIELD_NAMES.filter((f) => {
-    const val = business[f as keyof Business];
-    return val === null || val === undefined || val === "";
-  });
-}
-
-// ─── Conversation helpers ──────────────────────────────────────────────────────
-
-export function createConversation(businessId?: number): {
-  id: number;
-  business_id: number | null;
-  summary: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-} {
-  return db
-    .insert(conversations)
-    .values({ business_id: businessId })
-    .returning()
-    .get();
-}
-
-export function getConversation(id: number) {
-  return db
-    .select()
-    .from(conversations)
-    .where(eq(conversations.id, id))
-    .get();
-}
-
-export function updateConversationSummary(
-  conversationId: number,
-  summary: string
-) {
-  return db
-    .update(conversations)
-    .set({ summary, updated_at: new Date().toISOString() })
-    .where(eq(conversations.id, conversationId))
-    .run();
-}
-
-// ─── Message helpers ───────────────────────────────────────────────────────────
-
-export function addMessage(
-  conversationId: number,
-  role: "user" | "assistant" | "system",
-  content: string
-): Message {
-  return db
-    .insert(messages)
-    .values({ conversation_id: conversationId, role, content })
-    .returning()
-    .get();
-}
-
-export function getRecentMessages(
-  conversationId: number,
-  limit = 10
-): Message[] {
-  // Return last `limit` messages, oldest first for LLM context
-  const rows = db
-    .select()
-    .from(messages)
-    .where(eq(messages.conversation_id, conversationId))
-    .all();
-  return rows.slice(-limit);
-}
+export const executeRawQuery = dbQueries.executeRawQuery;

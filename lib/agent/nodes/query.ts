@@ -1,7 +1,7 @@
 import { callGeminiStructured, callGemini } from "@/lib/ai/gemini";
 import { callGroqStructured } from "@/lib/ai/groq";
 import { BUSINESSES_SCHEMA_SQL } from "@/lib/config/fields";
-import { sqlite } from "@/lib/db/client";
+import { executeRawQuery, isPostgres } from "@/lib/db/queries";
 import {
   QuerySpecSchema,
   SqlOutputSchema,
@@ -100,12 +100,15 @@ export async function generateAndExecuteSql(
         ? `\n\nPrevious attempt failed:\nSQL: ${lastSql}\nSQLite error: ${lastError}\nPlease fix the SQL error above.`
         : "";
 
-    const prompt = `You are a SQLite SQL generator.
+    const dialect = isPostgres() ? "PostgreSQL" : "SQLite";
+    const parameterFormat = isPostgres() ? "$1, $2, $3" : "? placeholders";
+
+    const prompt = `You are a ${dialect} SQL generator.
 
 Database schema:
 ${BUSINESSES_SCHEMA_SQL}
 
-SQL dialect: SQLite — use SQLite-compatible syntax only.
+SQL dialect: ${dialect} — use ${dialect}-compatible syntax only.
 
 Structured query specification:
 ${JSON.stringify(spec, null, 2)}
@@ -120,7 +123,7 @@ Generate a read-only SELECT query. Return ONLY valid JSON:
 Rules:
 - Use only columns and tables that exist in the schema above
 - Forbidden keywords: INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, REPLACE
-- Use ? placeholders for user-supplied filter values in the parameters array
+- Use ${parameterFormat} for user-supplied filter values in the parameters array
 - Keep it simple and safe`;
 
     let sqlOutput: { sql: string; parameters: unknown[] };
@@ -153,8 +156,7 @@ Rules:
 
     // Execute
     try {
-      const stmt = sqlite.prepare(sqlOutput.sql);
-      const rows = stmt.all(...(sqlOutput.parameters as unknown[]));
+      const rows = await executeRawQuery(sqlOutput.sql, sqlOutput.parameters as unknown[]);
       return {
         generatedSql: sqlOutput.sql,
         sqlResult: rows,

@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     // Create conversation if new
     let convId = conversationId;
     if (!convId) {
-      const conv = createConversation(businessId);
+      const conv = await createConversation(businessId);
       convId = conv.id;
     }
 
