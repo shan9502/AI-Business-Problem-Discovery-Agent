@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { BUSINESS_FIELDS } from "@/lib/config/fields";
 
 interface Props {
   businessContext?: Record<string, unknown>;
   missingFields?: string[];
+  expanded?: boolean;
+  onToggle?: () => void;
 }
 
 const PRIORITY_TIERS = [
@@ -15,8 +17,7 @@ const PRIORITY_TIERS = [
   { label: "Low", min: 0, color: "tier-low" },
 ];
 
-export function BusinessProgress({ businessContext, missingFields }: Props) {
-  const [expanded, setExpanded] = useState(true);
+export function BusinessProgress({ businessContext, missingFields, expanded = true, onToggle }: Props) {
   const missing = new Set(missingFields ?? []);
 
   const fieldsByTier = PRIORITY_TIERS.map((tier) => ({
@@ -24,7 +25,7 @@ export function BusinessProgress({ businessContext, missingFields }: Props) {
     fields: Object.entries(BUSINESS_FIELDS)
       .filter(([, cfg]) => cfg.priority >= tier.min)
       .filter(
-        ([, cfg], _, arr) =>
+        ([, cfg]) =>
           !PRIORITY_TIERS.find(
             (t) => t.min > tier.min && cfg.priority >= t.min
           )
@@ -42,31 +43,35 @@ export function BusinessProgress({ businessContext, missingFields }: Props) {
   const filledFields = totalFields - (missingFields?.length ?? totalFields);
   const progress = Math.round((filledFields / totalFields) * 100);
 
+  const handleToggle = () => onToggle?.();
+
   return (
-    <aside className="business-progress" id="business-progress">
+    <aside id="business-progress">
       <div
         className="progress-header"
-        onClick={() => setExpanded((e) => !e)}
+        onClick={handleToggle}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && setExpanded((x) => !x)}
+        onKeyDown={(e) => e.key === "Enter" && handleToggle()}
         aria-expanded={expanded}
+        aria-controls="progress-body"
+        aria-label={`Business Profile, ${progress}% complete. ${expanded ? "Collapse" : "Expand"}`}
       >
         <div className="progress-title">
-          <span className="progress-icon">📊</span>
+          <span className="progress-icon" aria-hidden="true">📊</span>
           <span>Business Profile</span>
         </div>
         <div className="progress-meta">
-          <div className="progress-bar-wrap">
+          <div className="progress-bar-wrap" aria-hidden="true">
             <div className="progress-bar" style={{ width: `${progress}%` }} />
           </div>
-          <span className="progress-pct">{progress}%</span>
-          <span className="collapse-icon">{expanded ? "▲" : "▼"}</span>
+          <span className="progress-pct" aria-hidden="true">{progress}%</span>
+          <span className="collapse-icon" aria-hidden="true">{expanded ? "▲" : "▼"}</span>
         </div>
       </div>
 
       {expanded && (
-        <div className="progress-body">
+        <div className="progress-body" id="progress-body">
           {fieldsByTier.map((tier) =>
             tier.fields.length === 0 ? null : (
               <div key={tier.label} className={`tier-group ${tier.color}`}>
@@ -77,12 +82,12 @@ export function BusinessProgress({ businessContext, missingFields }: Props) {
                     className={`field-row ${f.filled ? "filled" : "empty"}`}
                     title={f.description}
                   >
-                    <span className="field-status">{f.filled ? "✓" : "○"}</span>
+                    <span className="field-status" aria-hidden="true">{f.filled ? "✓" : "○"}</span>
                     <span className="field-name">{f.label}</span>
                     {f.filled && f.value != null && (
                       <span className="field-value" title={String(f.value)}>
-                        {String(f.value).slice(0, 30)}
-                        {String(f.value).length > 30 ? "…" : ""}
+                        {String(f.value).slice(0, 28)}
+                        {String(f.value).length > 28 ? "…" : ""}
                       </span>
                     )}
                   </div>

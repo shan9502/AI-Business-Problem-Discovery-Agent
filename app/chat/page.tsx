@@ -9,7 +9,7 @@ const INITIAL_MESSAGE: Message = {
   role: "assistant",
   content:
     "Hello! I'm your AI Business Problem Discovery Engine. Tell me about a business, workflow, or recurring process you're analyzing. My goal is to help you uncover, qualify, and validate valuable business problems and automation opportunities.\n\nWhere would you like to start?",
-  timestamp: new Date(0), // placeholder; replaced client-side in useEffect
+  timestamp: new Date(0), // replaced client-side in useEffect
 };
 
 export default function ChatPage() {
@@ -22,14 +22,15 @@ export default function ChatPage() {
   const [businessContext, setBusinessContext] = useState<
     Record<string, unknown> | undefined
   >();
-  const [askedFields, setAskedFields] = useState<string[]>([]);     // #10
-  const [skippedFields, setSkippedFields] = useState<string[]>([]); // #10
+  const [askedFields, setAskedFields] = useState<string[]>([]);
+  const [skippedFields, setSkippedFields] = useState<string[]>([]);
   const [problemSignals, setProblemSignals] = useState<string[]>([]);
   const [automationSignals, setAutomationSignals] = useState<string[]>([]);
   const [integrationSignals, setIntegrationSignals] = useState<string[]>([]);
   const [aiSignals, setAiSignals] = useState<string[]>([]);
   const [evidence, setEvidence] = useState<string[]>([]);
   const [opportunityAssessment, setOpportunityAssessment] = useState<string | undefined>();
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Set initial message timestamp client-side to avoid SSR hydration mismatch
@@ -41,8 +42,8 @@ export default function ChatPage() {
     );
   }, []);
 
-  const sendMessage = useCallback(async () => {
-    const text = input.trim();
+  const sendMessage = useCallback(async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
     if (!text || isLoading) return;
 
     const userMsg: Message = {
@@ -55,6 +56,9 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
+
+    // Auto-expand sidebar once conversation starts
+    if (!sidebarExpanded) setSidebarExpanded(false);
 
     try {
       const res = await fetch("/api/chat", {
@@ -71,7 +75,7 @@ export default function ChatPage() {
           integrationSignals,
           aiSignals,
           evidence,
-          opportunityAssessment
+          opportunityAssessment,
         }),
       });
 
@@ -101,28 +105,47 @@ export default function ChatPage() {
       if (data.integrationSignals) setIntegrationSignals(data.integrationSignals);
       if (data.aiSignals) setAiSignals(data.aiSignals);
       if (data.evidence) setEvidence(data.evidence);
-      if (data.opportunityAssessment) setOpportunityAssessment(data.opportunityAssessment);
+      if (data.opportunityAssessment)
+        setOpportunityAssessment(data.opportunityAssessment);
     } catch (err) {
       const errorMsg: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content:
-          "Sorry, something went wrong. Please try again.",
+        content: "Sorry, something went wrong. Please try again.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
-      inputRef.current?.focus();
+      // Restore focus to input after response
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [input, isLoading, conversationId, businessId, askedFields, skippedFields]);
+  }, [input, isLoading, conversationId, businessId, askedFields, skippedFields,
+      problemSignals, automationSignals, integrationSignals, aiSignals, evidence, opportunityAssessment, sidebarExpanded]);
+
+  // Auto-resize textarea
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    // Reset height then set to scrollHeight so it grows/shrinks
+    e.target.style.height = "auto";
+    e.target.style.height = Math.min(e.target.scrollHeight, 110) + "px";
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // On desktop: Enter sends. On mobile (no modifier): Enter also sends.
+    // Shift+Enter always inserts a newline.
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
+
+  const handleStarterClick = (text: string) => {
+    setInput(text);
+    sendMessage(text);
+  };
+
+  const toggleSidebar = () => setSidebarExpanded((e) => !e);
 
   return (
     <main className="app-layout" id="main-content">
@@ -130,7 +153,7 @@ export default function ChatPage() {
       <section className="chat-panel">
         <header className="chat-header" id="chat-header">
           <div className="header-brand">
-            <span className="brand-icon">🔭</span>
+            <span className="brand-icon" aria-hidden="true">🔭</span>
             <div>
               <h1 className="brand-title">AI Business Observer</h1>
               <p className="brand-subtitle">Intelligent business discovery</p>
@@ -143,25 +166,37 @@ export default function ChatPage() {
           )}
         </header>
 
-        <ChatWindow messages={messages} isLoading={isLoading} />
+        <ChatWindow
+          messages={messages}
+          isLoading={isLoading}
+          onStarterClick={handleStarterClick}
+        />
 
         <div className="input-area" id="input-area">
-          <textarea
-            ref={inputRef}
-            id="chat-input"
-            className="chat-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Describe a business, answer a question, or ask something…"
-            rows={2}
-            disabled={isLoading}
-            aria-label="Chat input"
-          />
+          <div className="input-wrapper">
+            <textarea
+              ref={inputRef}
+              id="chat-input"
+              className="chat-input"
+              value={input}
+              onChange={handleInput}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe a business, answer a question…"
+              rows={1}
+              disabled={isLoading}
+              aria-label="Chat input"
+              // Mobile keyboard optimizations
+              inputMode="text"
+              enterKeyHint="send"
+              autoComplete="off"
+              autoCorrect="on"
+              spellCheck={true}
+            />
+          </div>
           <button
             id="send-button"
             className="send-button"
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={isLoading || !input.trim()}
             aria-label="Send message"
           >
@@ -180,10 +215,17 @@ export default function ChatPage() {
       </section>
 
       {/* ── Right: Progress sidebar ── */}
-      <BusinessProgress
-        businessContext={businessContext}
-        missingFields={missingFields}
-      />
+      <div
+        className={`business-progress ${sidebarExpanded ? "expanded" : ""}`}
+        id="business-progress-container"
+      >
+        <BusinessProgress
+          businessContext={businessContext}
+          missingFields={missingFields}
+          onToggle={toggleSidebar}
+          expanded={sidebarExpanded}
+        />
+      </div>
     </main>
   );
 }

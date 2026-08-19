@@ -13,32 +13,29 @@ export interface Message {
 interface Props {
   messages: Message[];
   isLoading?: boolean;
+  onStarterClick?: (text: string) => void;
 }
 
-export function ChatWindow({ messages, isLoading }: Props) {
+const STARTER_PROMPTS = [
+  { icon: "🏭", text: "We distribute electrical components to contractors" },
+  { icon: "🍕", text: "A restaurant chain with 12 locations managing orders" },
+  { icon: "🤖", text: "Which businesses have high automation potential?" },
+  { icon: "📦", text: "A warehouse doing manual inventory tracking daily" },
+];
+
+export function ChatWindow({ messages, isLoading, onStarterClick }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
+  // Show starter chips when no user messages have been sent yet
+  const hasUserMessages = messages.some((m) => m.role === "user");
+  const showStarters = !hasUserMessages;
+
   return (
-    <div className="chat-window" id="chat-window">
-      {messages.length === 0 && (
-        <div className="welcome-state">
-          <div className="welcome-icon">🔍</div>
-          <h2>AI Business Observer</h2>
-          <p>
-            Start by describing a business or process you want to analyze.
-            <br />
-            I&apos;ll help you gather structured insights through conversation.
-          </p>
-          <div className="starter-hints">
-            <span>Try: &quot;We distribute electrical components to contractors&quot;</span>
-            <span>Or: &quot;Which companies have high automation potential?&quot;</span>
-          </div>
-        </div>
-      )}
+    <div className="chat-window" id="chat-window" role="log" aria-live="polite" aria-label="Chat messages">
 
       {messages.map((msg) => (
         <ChatMessage
@@ -49,10 +46,35 @@ export function ChatWindow({ messages, isLoading }: Props) {
         />
       ))}
 
+      {showStarters && (
+        <div className="starter-chips" role="list" aria-label="Conversation starters">
+          {STARTER_PROMPTS.map((prompt) => (
+            <button
+              key={prompt.text}
+              className="starter-chip"
+              role="listitem"
+              onClick={() => onStarterClick?.(prompt.text)}
+              aria-label={`Start with: ${prompt.text}`}
+            >
+              <span className="starter-chip-icon" aria-hidden="true">{prompt.icon}</span>
+              <span>{prompt.text}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {isLoading && (
-        <div className="chat-message assistant">
+        <div className="chat-message assistant" aria-label="Assistant is typing">
           <div className="message-bubble">
-            <div className="typing-indicator">
+            <div className="assistant-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <circle cx={12} cy={12} r={10} />
+                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                <line x1={9} y1={9} x2={9.01} y2={9} />
+                <line x1={15} y1={9} x2={15.01} y2={9} />
+              </svg>
+            </div>
+            <div className="typing-indicator" aria-hidden="true">
               <span></span>
               <span></span>
               <span></span>
@@ -61,7 +83,7 @@ export function ChatWindow({ messages, isLoading }: Props) {
         </div>
       )}
 
-      <div ref={bottomRef} />
+      <div ref={bottomRef} aria-hidden="true" />
     </div>
   );
 }
