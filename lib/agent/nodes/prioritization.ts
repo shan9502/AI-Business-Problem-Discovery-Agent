@@ -72,10 +72,22 @@ export async function prioritizeFields(
       )
       .join("\n");
 
+    // Include detected signals so the LLM can reason about what to investigate next
+    const signals = [
+      ...(state.problemSignals ?? []).map((s) => `  [problem] ${s}`),
+      ...(state.automationSignals ?? []).map((s) => `  [automation] ${s}`),
+      ...(state.integrationSignals ?? []).map((s) => `  [integration] ${s}`),
+      ...(state.aiSignals ?? []).map((s) => `  [ai] ${s}`),
+    ];
+    const signalContext = signals.length > 0
+      ? `\nDetected signals from conversation:\n${signals.slice(0, 8).join("\n")}`
+      : "";
+
     const prompt = `You are a business intelligence assistant for a Business Problem Discovery Engine. Your goal is to prioritize which field to ask about next.
 
 Known business information:
 ${knownFields}
+${signalContext}
 
 These are the top candidate fields still missing:
 ${candidateList}
@@ -86,9 +98,10 @@ We group fields into 4 priority categories (Stages). These are SOFT GUIDELINES, 
 3. Problem Evidence: time_consumed, main_pain, error_rate, existing_software, why_existing_software_fails
 4. Opportunity Assessment: ai_opportunity, automation_opportunity, estimated_value, integration_difficulty, buyer, decision_maker, competition
 
-Given the current business context, which field should be asked about FIRST to maximize opportunity-discovery value?
+Given the current business context and detected signals, which field should be asked about FIRST to maximize opportunity-discovery value?
 Consider:
 - IMPORTANT: If the user provides out-of-order information (e.g., they jump straight to Problem Evidence), DO NOT force them back to Stage 1. Extract the facts and logically adapt your next question.
+- Use detected signals to guide prioritization — e.g., if manual data entry is detected, prioritize error_rate and why_existing_software_fails.
 - Prioritize finding the problem (Stage 3) OVER basic firmographics (Stage 1/4) if a workflow is already identified.
 - Which field logically follows from what the user just said?
 - Which field would best help establish if there is a real, recurring, expensive problem?

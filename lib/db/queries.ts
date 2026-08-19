@@ -13,6 +13,7 @@ export const getBusinessById = dbQueries.getBusinessById;
 export const updateBusiness = dbQueries.updateBusiness;
 export const searchBusinesses = dbQueries.searchBusinesses;
 export const getAllBusinesses = dbQueries.getAllBusinesses;
+export const getBusinessesWithNames = dbQueries.getBusinessesWithNames;
 export const getMissingFields = dbQueries.getMissingFields;
 
 export const createConversation = dbQueries.createConversation;

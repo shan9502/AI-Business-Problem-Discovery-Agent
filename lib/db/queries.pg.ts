@@ -1,4 +1,4 @@
-import { eq, like, or, sql as drizzleSql } from "drizzle-orm";
+import { eq, like, isNotNull, or, sql as drizzleSql } from "drizzle-orm";
 import { db, pgPool } from "./client.pg";
 import {
   businesses,
@@ -54,6 +54,17 @@ export async function searchBusinesses(query: string): Promise<Business[]> {
 
 export async function getAllBusinesses(): Promise<Business[]> {
   return await db!.select().from(businesses);
+}
+
+/**
+ * Returns all businesses that have a company_name set.
+ * Used as the candidate pool for fuzzy duplicate detection.
+ */
+export async function getBusinessesWithNames(): Promise<Array<{ id: number; company_name: string | null }>> {
+  return await db!
+    .select({ id: businesses.id, company_name: businesses.company_name })
+    .from(businesses)
+    .where(isNotNull(businesses.company_name));
 }
 
 /** Returns field names that are null or empty in a given business record */

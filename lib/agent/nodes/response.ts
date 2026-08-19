@@ -21,15 +21,16 @@ export async function generateResponse(
       skippedFields.push(state.nextField);
     }
 
-    const skipPrompt = `You are a helpful business analyst assistant.
+    const skipPrompt = `You are a friendly business research assistant.
 
-The user skipped the question about "${state.nextField}".
-User message: "${state.userMessage}"
+The user just said: "${state.userMessage}"
 
-Acknowledge that you'll come back to it if needed, and briefly mention the next topic you'll ask about.
-Known context: ${JSON.stringify(state.businessContext ?? {}, null, 2)}
+They are skipping the current topic. Respond in 1-2 short sentences:
+- Acknowledge naturally (e.g. "No problem", "Got it", "That's fine")
+- Do NOT mention field names or database terms
+- Do NOT say "I'll come back to it" — just move on naturally
 
-Keep the response short and natural.`;
+Keep it very brief.`;
 
     const response = await callGemini(skipPrompt);
     if (state.conversationId) {
@@ -78,17 +79,19 @@ Keep the response short and natural.`;
     const rows = state.sqlResult as unknown[];
     const rowCount = Array.isArray(rows) ? rows.length : 0;
 
-    const prompt = `You are a business intelligence assistant.
+    const prompt = `You are a business intelligence assistant answering a research question.
 
-The user asked: "${state.userMessage}"
+User asked: "${state.userMessage}"
 
 Database query returned ${rowCount} result(s):
 ${JSON.stringify(state.sqlResult, null, 2)}
 
-Provide a clear, helpful summary of these results. 
-- If results are empty, say clearly that no matching records were found.
-- If there are results, summarize the key patterns or list key facts.
-- Be concise and natural.`;
+Guidelines:
+- If empty: say clearly that nothing matched and suggest rephrasing.
+- If results exist: give a concise, insightful answer in plain language. Highlight patterns, counts, or notable findings.
+- Use bullet points for lists of businesses or items.
+- Never mention SQL, field names, or database internals.
+- Be analytical and useful, not just a data dump.`;
 
     const response = await callGemini(prompt);
     if (state.conversationId) {
@@ -114,24 +117,43 @@ Provide a clear, helpful summary of these results.
     .slice(0, 5)
     .join(", ");
 
-  const prompt = `You are a helpful AI Business Observer assistant.
+  const isResume = state.intent === "resume";
+  const isGeneral = state.intent === "general";
+  const isConfirmYes = state.intent === "confirm_yes";
+  const isConfirmNo = state.intent === "confirm_no";
+
+  const nextTopicHint = missingList
+    ? `The most important remaining topic to explore: ${missingList.split(",")[0].trim()}`
+    : "";
+
+  const prompt = `You are a friendly business research assistant.
 
 User message: "${state.userMessage}"
-Intent: ${state.intent}
 
-Known business information:
-${knownFields || "  (none yet)"}
+What we know about this business:
+${knownFields || "  (nothing yet)"}
 
-${state.conversationSummary ? `Conversation summary:\n${state.conversationSummary}` : ""}
+${state.conversationSummary ? `Conversation so far:\n${state.conversationSummary}` : ""}
 
-${missingList ? `Top fields still needed to qualify the opportunity: ${missingList}` : "All key fields are collected — great work! We've fully qualified this problem."}
+${isResume ? `The user wants to know where we left off.
 
-${state.intent === "general" ? "Answer this general question helpfully and concisely." : ""}
-${state.intent === "resume" ? "Provide a problem-oriented summary of what has been collected so far (e.g., 'We identified a recurring quotation-processing problem...'). Then clearly state what important information is still missing to properly assess the opportunity (time consumed, impact, etc.). Be friendly and specific." : ""}
-${state.intent === "confirm_yes" ? "Acknowledge the confirmation positively and continue." : ""}
-${state.intent === "confirm_no" ? "Acknowledge the user wants a new business entry. Confirm you'll start fresh." : ""}
+Write a SHORT, plain-language summary (2-3 sentences):
+- What business or industry we are researching
+- What we have already learned (process, workflow, problems discovered)
+- What important aspect we still need to understand
 
-Provide a natural, concise response.`;
+Then ask exactly ONE short follow-up question to continue naturally.
+Do NOT list field names. Do NOT use bullet lists for the summary. Write it as a researcher would speak.` : ""}
+
+${isGeneral ? `Answer the user's question helpfully and briefly. Do not mention database fields or internal terms.` : ""}
+
+${isConfirmYes ? `Acknowledge positively in one sentence and continue naturally.` : ""}
+
+${isConfirmNo ? `Acknowledge in one sentence that you'll start fresh with a new business record.` : ""}
+
+${!isResume && !isGeneral && !isConfirmYes && !isConfirmNo ? `Respond naturally and concisely to the user's message. ${nextTopicHint}` : ""}
+
+Keep the response short and conversational. No bullet lists unless showing data.`;
 
   const response = await callGemini(prompt);
   if (state.conversationId) {

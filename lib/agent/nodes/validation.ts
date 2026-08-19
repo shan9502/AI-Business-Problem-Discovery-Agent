@@ -2,9 +2,10 @@ import {
   createBusiness,
   getMissingFields,
   getBusinessById,
-  searchBusinesses,
+  getBusinessesWithNames,
   updateBusiness,
 } from "@/lib/db/queries";
+import { findDuplicateCandidates } from "@/lib/db/deduplication";
 import type { Business } from "@/lib/db/schema";
 import type { BusinessObserverState } from "../state";
 
@@ -13,9 +14,14 @@ import type { BusinessObserverState } from "../state";
  *
  * 1. If pendingBusinessMatch exists + user said confirm_yes → use that business.
  * 2. If pendingBusinessMatch exists + user said confirm_no / discover → create new business.
- * 3. If no businessId and company_name is known → search for match.
- *    - If match found → set pendingBusinessMatch and return early (ask confirmation).
+ * 3. If no businessId and company_name is known → fuzzy-search for match.
+ *    - Fetches all named businesses, runs JS-side similarity scoring.
+ *    - If a match is found → set pendingBusinessMatch and return early (ask confirmation).
  * 4. Write extracted fields via parameterized Drizzle queries.
+ *
+ * Deduplication uses Jaccard token overlap + Jaro-Winkler on normalized names,
+ * so variants like "Acme Corp", "ACME CORPORATION", "acme co." all resolve to
+ * the same record (similarity threshold: 0.75).
  */
 export async function validateAndWrite(
   state: BusinessObserverState
@@ -70,20 +76,21 @@ export async function validateAndWrite(
       (state.businessContext?.company_name as string | undefined);
 
     if (nameCandidate) {
-      const results = await searchBusinesses(nameCandidate);
+      // Fetch all named businesses and run JS-side fuzzy similarity check
+      const allNamed = await getBusinessesWithNames();
+      const duplicates = findDuplicateCandidates(nameCandidate, allNamed);
 
-      if (results.length === 1) {
-        // Found a single strong match — ask confirmation (#12)
-        const match = results[0];
-        const displayName = match.company_name ?? `Business #${match.id}`;
+      if (duplicates.length === 1) {
+        // Single strong match — ask confirmation
+        const match = duplicates[0];
         return {
-          pendingBusinessMatch: { id: match.id, name: displayName },
-          finalResponse: `I found an existing record for **${displayName}**. Is this the company you want to continue with?\n\n- Reply **yes** to continue updating this record.\n- Reply **no** to create a new business entry.`,
+          pendingBusinessMatch: { id: match.id, name: match.company_name },
+          finalResponse: `I found an existing record for **${match.company_name}**. Is this the company you want to continue with?\n\n- Reply **yes** to continue updating this record.\n- Reply **no** to create a new business entry.`,
         };
-      } else if (results.length > 1) {
+      } else if (duplicates.length > 1) {
         // Multiple matches — ask user to clarify
-        const list = results
-          .map((r, i) => `  ${i + 1}. ${r.company_name ?? `Business #${r.id}`}`)
+        const list = duplicates
+          .map((r, i) => `  ${i + 1}. ${r.company_name}`)
           .join("\n");
         return {
           finalResponse: `I found multiple businesses that could match. Which one do you mean?\n\n${list}\n\nOr reply **new** to create a new business.`,

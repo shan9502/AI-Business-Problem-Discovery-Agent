@@ -15,48 +15,82 @@ export async function generateQuestion(
   if (!nextField) return {};
 
   const fieldConfig = BUSINESS_FIELDS[nextField];
-  const knownFields = Object.entries(state.businessContext ?? {})
-    .filter(([k, v]) => v !== null && v !== undefined && v !== "" && k in BUSINESS_FIELDS)
-    .map(([k, v]) => `  ${k}: ${v}`)
+
+  // ── Build context for the LLM ─────────────────────────────────────────────
+  const knownEntries = Object.entries(state.businessContext ?? {}).filter(
+    ([k, v]) => v !== null && v !== undefined && v !== "" && k in BUSINESS_FIELDS
+  );
+  const knownFields = knownEntries.map(([k, v]) => `  ${k}: ${v}`).join("\n");
+  const knownCount = knownEntries.length;
+
+  // Recent conversation (last 4 exchanges)
+  const recentExchange = (state.recentMessages ?? [])
+    .slice(-4)
+    .map((m) => `${m.role === "user" ? "User" : "Agent"}: ${m.content}`)
     .join("\n");
 
-  const alreadyAsked = (state.recentMessages ?? [])
-    .filter((m) => m.role === "assistant")
-    .map((m) => m.content)
-    .slice(-3)
-    .join("\n");
+  // Detected signals so far
+  const signals = [
+    ...(state.problemSignals ?? []).map((s) => `[problem] ${s}`),
+    ...(state.automationSignals ?? []).map((s) => `[automation] ${s}`),
+    ...(state.integrationSignals ?? []).map((s) => `[integration] ${s}`),
+    ...(state.aiSignals ?? []).map((s) => `[ai] ${s}`),
+  ];
+  const signalContext = signals.length > 0
+    ? `\nDetected signals so far:\n${signals.slice(0, 6).map((s) => `  • ${s}`).join("\n")}`
+    : "";
 
-  const prompt = `You are an intelligent business analyst assistant for a Business Problem Discovery Engine. Your goal is to uncover and qualify valuable business problems.
+  // Determine if a hint is warranted:
+  // - Very little context known (first 3 fields) — user may need guidance
+  // - OR it's an opportunity-assessment field (complex, abstract)
+  const isOpportunityField = (fieldConfig?.priority ?? 0) < 60;
+  const needsHint = knownCount < 3 || isOpportunityField;
 
-Known business information:
-${knownFields || "  (none yet)"}
+  const prompt = `You are a business research assistant conducting a friendly discovery interview.
 
-You need to ask about: ${nextField}
-Field description: ${fieldConfig?.description}
-Field importance: priority ${fieldConfig?.priority}/100
+Your job: ask ONE short, natural follow-up question to uncover the following information:
+  Topic: ${fieldConfig?.description ?? nextField}
 
-Previous assistant messages (avoid repeating these):
-${alreadyAsked || "  (none)"}
+## Business context so far
+${knownFields || "  (none yet — this is the beginning of the conversation)"}
+${signalContext}
 
-Generate a natural, conversational question to ask about "${nextField}".
+## Recent conversation
+${recentExchange || "  (no prior messages)"}
 
-Crucial Conversation Rules:
-1. **Increase difficulty gradually:** If we are asking about basic company info, keep the question short and simple. If we are asking about workflows or problems, make the question more operational and investigative.
-2. **Uncover problems indirectly:** DO NOT ask literal questionnaire questions like "What is the main pain?" or "What is the error rate?". Instead, ask investigative questions like "Where does the process slow down?", "Which step requires the most manual effort?", or "What happens when an error occurs?". Let the problem emerge naturally.
-3. **Think like a software developer:** Mentally evaluate if the process can be automated, integrated, or digitized, but do NOT assume every problem requires AI. Find the right digital solution (e.g., traditional software, API integration, RPA).
+## Rules for your question
+1. Write ONE question only — never combine two questions into one.
+2. Keep it SHORT — ideally 5–12 words. Only longer if absolutely necessary for clarity.
+3. Write it as a natural follow-up to the conversation above — not as a standalone form question.
+4. Never mention database field names, form labels, or technical terms.
+5. Never ask "What is the main pain point?" or "What automation opportunities exist?" — uncover problems indirectly by asking about process steps, manual work, delays, errors, and frequency.
+6. Do not assume a specific industry — the question must work for any business type.
 
-Also generate a short helpful hint (1-3 sentences) that:
-1. Suggests practical ways the user can discover or estimate this information if they don't know it (e.g., "You could estimate this by taking average time spent per task × frequency").
-2. Reassures them that an approximate answer or estimate is perfectly acceptable.
+## Examples of good questions
+- "How do they manage projects?"
+- "Who handles that step?"
+- "How often does this happen?"
+- "What takes the most time?"
+- "Do they use any software for it?"
+- "What still needs to be done manually?"
 
-If the "Known business information" clearly establishes a real, recurring, expensive problem (Problem + Frequency + Time + People + Pain), include a brief sentence in the hint expressing "Potential Solution / Opportunity Thinking" (e.g., "Based on what we know so far, this looks like a strong automation opportunity because...").
+${needsHint ? `Also generate a short hint (1–2 sentences max). The hint should:
+- Help the user if they're unsure how to find or estimate this
+- Reassure them that approximations are fine
+- NOT repeat the question
+- If there are strong problem signals, you may add one sentence noting the potential opportunity (e.g. "This looks like a strong automation candidate...")` : "Do NOT generate a hint — the conversation has enough context."}
 
-Keep the question concise. Make it feel natural, like a business discovery interview, not a form.`;
+Return ONLY valid JSON matching this structure:
+${needsHint
+    ? '{ "question": "...", "hint": "..." }'
+    : '{ "question": "..." }'}`;
 
   const result = await callGeminiStructured(prompt, QuestionSchema, "question");
-  const fullQuestion = result.hint
-    ? `${result.question}\n\n*${result.hint}*`
-    : result.question;
+  const fullQuestion =
+    result.hint && needsHint
+      ? `${result.question}\n\n*${result.hint}*`
+      : result.question;
 
   return { nextQuestion: fullQuestion };
 }
+
