@@ -53,6 +53,7 @@ export interface BusinessObserverState {
   nextQuestion?: string;
   finalResponse?: string;
   pendingBusinessMatch?: { id: number; name: string };  // #12: duplicate confirmation
+  inputMode?: "text" | "voice";                         // analytics/debugging only
 }
 
 // ─── Zod schema for structured intent output ─────────────────────────────────

@@ -74,11 +74,14 @@ Create a structured query specification. Return ONLY a valid JSON object:
   "limit": 20
 }
 
-Rules:
-- Use only field names from the available business fields list above
-- For LIKE searches, use the "LIKE" operator and include % wildcards in the value
-- filters and sort are optional
-- Return empty array [] for filters if no filtering is needed`;
+CRITICAL — Token efficiency rules (MUST follow):
+- Select ONLY the columns the user actually needs to answer their question.
+- If the user just wants a list of companies/businesses, set "fields": ["company_name"] — nothing else.
+- If the user asks for companies in a specific industry, set "fields": ["company_name", "industry"].
+- NEVER select all columns unless the user explicitly asks for full details of a record.
+- For LIKE searches, use the "LIKE" operator and include % wildcards in the value.
+- filters and sort are optional.
+- Return empty array [] for filters if no filtering is needed.`;
 
   const spec = await callGeminiStructured(prompt, QuerySpecSchema, "query_spec");
   return { querySpecification: spec };

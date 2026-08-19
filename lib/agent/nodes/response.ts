@@ -86,12 +86,15 @@ User asked: "${state.userMessage}"
 Database query returned ${rowCount} result(s):
 ${JSON.stringify(state.sqlResult, null, 2)}
 
-Guidelines:
-- If empty: say clearly that nothing matched and suggest rephrasing.
-- If results exist: give a concise, insightful answer in plain language. Highlight patterns, counts, or notable findings.
-- Use bullet points for lists of businesses or items.
-- Never mention SQL, field names, or database internals.
-- Be analytical and useful, not just a data dump.`;
+**IMPORTANT — Format your response in Markdown:**
+- If the results are a list of companies/businesses, render them as a **numbered list** (1. Company Name).
+- Use **bold** for company names or key terms.
+- Use a Markdown table if the results have multiple columns (e.g., company + industry).
+- Use headings (##) to organize sections if the response is longer.
+- If the result set is empty, say clearly that nothing matched and suggest rephrasing.
+- Highlight patterns, counts, or notable findings where relevant.
+- NEVER mention SQL, field names, column names, or database internals.
+- Be analytical and useful — not just a data dump.`;
 
     const response = await callGemini(prompt);
     if (state.conversationId) {

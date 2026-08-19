@@ -57,6 +57,7 @@ const GraphState = Annotation.Root({
   nextQuestion:            Annotation<string | undefined>({ reducer: (a, b) => b ?? a }),
   finalResponse:           Annotation<string | undefined>({ reducer: (a, b) => b ?? a }),
   pendingBusinessMatch:    Annotation<{ id: number; name: string } | undefined>({ reducer: (a, b) => b ?? a }),  // #12
+  inputMode:               Annotation<"text" | "voice" | undefined>({ reducer: (a, b) => b ?? a }),
 });
 
 // ─── Resume handler ────────────────────────────────────────────────────────────
@@ -156,7 +157,8 @@ export async function runAgent(
   integrationSignals?: string[],
   aiSignals?: string[],
   evidence?: string[],
-  opportunityAssessment?: string
+  opportunityAssessment?: string,
+  inputMode?: "text" | "voice"
 ): Promise<{
   finalResponse: string;
   conversationId?: number;
@@ -170,6 +172,7 @@ export async function runAgent(
   aiSignals?: string[];
   evidence?: string[];
   opportunityAssessment?: string;
+  inputMode?: "text" | "voice";
 }> {
   // #1: threadId tied to conversationId so MemorySaver can assist within a session
   // But loadContext always rebuilds from SQLite for true durability across restarts
@@ -188,6 +191,7 @@ export async function runAgent(
     aiSignals: aiSignals ?? [],
     evidence: evidence ?? [],
     opportunityAssessment: opportunityAssessment,
+    inputMode: inputMode,
   };
 
   const result = await compiledGraph.invoke(initialState, {
@@ -207,5 +211,6 @@ export async function runAgent(
     aiSignals: result.aiSignals,
     evidence: result.evidence,
     opportunityAssessment: result.opportunityAssessment,
+    inputMode: result.inputMode,
   };
 }

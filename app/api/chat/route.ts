@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       aiSignals,
       evidence,
       opportunityAssessment,
+      inputMode,
     } = body as {
       message: string;
       conversationId?: number;
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
       aiSignals?: string[];
       evidence?: string[];
       opportunityAssessment?: string;
+      inputMode?: "text" | "voice";
     };
 
     if (!message || typeof message !== "string") {
@@ -53,7 +55,8 @@ export async function POST(req: NextRequest) {
       integrationSignals,
       aiSignals,
       evidence,
-      opportunityAssessment
+      opportunityAssessment,
+      inputMode
     );
 
     return NextResponse.json({
