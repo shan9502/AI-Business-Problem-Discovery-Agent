@@ -8,6 +8,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  suggestedOptions?: string[];
 }
 
 interface Props {
@@ -37,13 +38,29 @@ export function ChatWindow({ messages, isLoading, onStarterClick }: Props) {
   return (
     <div className="chat-window" id="chat-window" role="log" aria-live="polite" aria-label="Chat messages">
 
-      {messages.map((msg) => (
-        <ChatMessage
-          key={msg.id}
-          role={msg.role}
-          content={msg.content}
-          timestamp={msg.timestamp}
-        />
+      {messages.map((msg, index) => (
+        <React.Fragment key={msg.id}>
+          <ChatMessage
+            role={msg.role}
+            content={msg.content}
+            timestamp={msg.timestamp}
+          />
+          {msg.suggestedOptions && msg.suggestedOptions.length > 0 && index === messages.length - 1 && !isLoading && (
+            <div className="suggested-options" role="list" aria-label="Suggested answers">
+              {msg.suggestedOptions.map((opt) => (
+                <button
+                  key={opt}
+                  className="suggested-option-chip"
+                  role="listitem"
+                  onClick={() => onStarterClick?.(opt)}
+                  aria-label={`Select option: ${opt}`}
+                >
+                  <span>{opt}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </React.Fragment>
       ))}
 
       {showStarters && (

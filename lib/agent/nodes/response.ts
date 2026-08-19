@@ -40,6 +40,7 @@ Keep it very brief.`;
     return {
       finalResponse: response,
       skippedFields,
+      suggestedOptions: [],
     };
   }
 
@@ -60,7 +61,7 @@ Keep it very brief.`;
       await addMessage(state.conversationId, "assistant", state.nextQuestion);
       await maybeSummarize(state);
     }
-    return { finalResponse: state.nextQuestion, askedFields };
+    return { finalResponse: state.nextQuestion, askedFields, suggestedOptions: state.suggestedOptions };
   }
 
   // ── SQL query response ─────────────────────────────────────────────────────
@@ -73,7 +74,7 @@ Keep it very brief.`;
         await addMessage(state.conversationId, "user", state.userMessage);
         await addMessage(state.conversationId, "assistant", response);
       }
-      return { finalResponse: response };
+      return { finalResponse: response, suggestedOptions: [] };
     }
 
     const rows = state.sqlResult as unknown[];
@@ -101,7 +102,7 @@ ${JSON.stringify(state.sqlResult, null, 2)}
       await addMessage(state.conversationId, "user", state.userMessage);
       await addMessage(state.conversationId, "assistant", response);
     }
-    return { finalResponse: response };
+    return { finalResponse: response, suggestedOptions: [] };
   }
 
   // ── Resume / general / confirm responses ─────────────────────────────────
@@ -164,7 +165,7 @@ Keep the response short and conversational. No bullet lists unless showing data.
     await addMessage(state.conversationId, "assistant", response);
     await maybeSummarize(state);
   }
-  return { finalResponse: response };
+  return { finalResponse: response, suggestedOptions: [] };
 }
 
 // ─── Summarize every 8 messages ───────────────────────────────────────────────

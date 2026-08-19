@@ -70,8 +70,8 @@ export async function POST(req: NextRequest) {
       automationSignals: result.automationSignals ?? [],
       integrationSignals: result.integrationSignals ?? [],
       aiSignals: result.aiSignals ?? [],
-      evidence: result.evidence ?? [],
       opportunityAssessment: result.opportunityAssessment,
+      suggestedOptions: result.suggestedOptions,
     });
   } catch (error) {
     console.error("[chat/route] Error:", error);

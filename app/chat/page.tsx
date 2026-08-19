@@ -140,6 +140,7 @@ export default function ChatPage() {
           role: "assistant",
           content: data.response,
           timestamp: new Date(),
+          suggestedOptions: data.suggestedOptions,
         };
 
         setMessages((prev) => [...prev, assistantMsg]);

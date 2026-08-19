@@ -51,6 +51,7 @@ export interface BusinessObserverState {
   retryCount: number;
   nextField?: string;
   nextQuestion?: string;
+  suggestedOptions?: string[];
   finalResponse?: string;
   pendingBusinessMatch?: { id: number; name: string };  // #12: duplicate confirmation
   inputMode?: "text" | "voice";                         // analytics/debugging only

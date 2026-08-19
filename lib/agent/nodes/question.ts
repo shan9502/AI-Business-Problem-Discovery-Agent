@@ -6,6 +6,7 @@ import type { BusinessObserverState } from "../state";
 const QuestionSchema = z.object({
   question: z.string(),
   hint: z.string().optional(),
+  suggestedOptions: z.array(z.string()).max(5).optional(),
 });
 
 export async function generateQuestion(
@@ -80,10 +81,12 @@ ${needsHint ? `Also generate a short hint (1–2 sentences max). The hint should
 - NOT repeat the question
 - If there are strong problem signals, you may add one sentence noting the potential opportunity (e.g. "This looks like a strong automation candidate...")` : "Do NOT generate a hint — the conversation has enough context."}
 
+Also optionally provide up to 5 short suggested answer options for the user to choose from. Only provide options if you have a good understanding of the business and can offer highly relevant, specific suggestions. Keep them short.
+
 Return ONLY valid JSON matching this structure:
 ${needsHint
-    ? '{ "question": "...", "hint": "..." }'
-    : '{ "question": "..." }'}`;
+    ? '{ "question": "...", "hint": "...", "suggestedOptions": ["option1", "option2"] }'
+    : '{ "question": "...", "suggestedOptions": ["option1", "option2"] }'}`;
 
   const result = await callGeminiStructured(prompt, QuestionSchema, "question");
   const fullQuestion =
@@ -91,6 +94,6 @@ ${needsHint
       ? `${result.question}\n\n*${result.hint}*`
       : result.question;
 
-  return { nextQuestion: fullQuestion };
+  return { nextQuestion: fullQuestion, suggestedOptions: result.suggestedOptions };
 }
 

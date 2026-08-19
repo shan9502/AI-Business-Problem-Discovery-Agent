@@ -56,6 +56,7 @@ const GraphState = Annotation.Root({
   nextField:               Annotation<string | undefined>({ reducer: (a, b) => b ?? a }),
   nextQuestion:            Annotation<string | undefined>({ reducer: (a, b) => b ?? a }),
   finalResponse:           Annotation<string | undefined>({ reducer: (a, b) => b ?? a }),
+  suggestedOptions:        Annotation<string[]>({ reducer: (a, b) => b ?? a ?? [] }),
   pendingBusinessMatch:    Annotation<{ id: number; name: string } | undefined>({ reducer: (a, b) => b ?? a }),  // #12
   inputMode:               Annotation<"text" | "voice" | undefined>({ reducer: (a, b) => b ?? a }),
 });
@@ -173,6 +174,7 @@ export async function runAgent(
   evidence?: string[];
   opportunityAssessment?: string;
   inputMode?: "text" | "voice";
+  suggestedOptions?: string[];
 }> {
   // #1: threadId tied to conversationId so MemorySaver can assist within a session
   // But loadContext always rebuilds from SQLite for true durability across restarts
@@ -212,5 +214,6 @@ export async function runAgent(
     evidence: result.evidence,
     opportunityAssessment: result.opportunityAssessment,
     inputMode: result.inputMode,
+    suggestedOptions: result.suggestedOptions,
   };
 }

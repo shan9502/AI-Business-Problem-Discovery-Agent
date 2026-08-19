@@ -1592,3 +1592,43 @@ body {
   text-decoration-color: #a78bfa;
 }
 
+/* ── Suggested Options ──────────────────────────────────────────────────────── */
+.suggested-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  animation: fadeInUp 0.4s ease;
+  justify-content: flex-start;
+  max-width: 85%;
+}
+
+.suggested-option-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-xl);
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--accent-primary);
+  cursor: pointer;
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  font-family: var(--font);
+}
+
+.suggested-option-chip:hover,
+.suggested-option-chip:focus-visible {
+  background: var(--accent-user-bg);
+  color: var(--accent-user);
+  border-color: var(--accent-user);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(45, 212, 191, 0.2);
+}
+
+.suggested-option-chip:active {
+  transform: scale(0.96);
+}
+
