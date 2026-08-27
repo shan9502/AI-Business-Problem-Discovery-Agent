@@ -40,8 +40,27 @@ export default function ChatPage() {
   const [aiSignals, setAiSignals] = useState<string[]>([]);
   const [evidence, setEvidence] = useState<string[]>([]);
   const [opportunityAssessment, setOpportunityAssessment] = useState<string | undefined>();
+  // NEW: session identity + disambiguation UI
+  const [sessionId, setSessionId] = useState<string | undefined>();
+  const [pendingSelection, setPendingSelection] = useState<{
+    type: string;
+    question: string;
+    options: Array<{ id: string; label: string; description?: string }>;
+  } | null>(null);
+  const [pendingBusinessMatch, setPendingBusinessMatch] = useState<{ id: number; name: string } | null>(null);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+
+  // ── Session ID (browser-generated, durable across reloads) ───────────────────
+  useEffect(() => {
+    let sid = localStorage.getItem("bo-session-id");
+    if (!sid) {
+      sid = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      localStorage.setItem("bo-session-id", sid);
+    }
+    setSessionId(sid);
+  }, []);
 
   // ── Theme ──────────────────────────────────────────────────────────────────
   const [theme, setTheme] = useState<Theme>("dark");
@@ -126,8 +145,10 @@ export default function ChatPage() {
             evidence,
             opportunityAssessment,
             inputMode: mode,
+            sessionId,         // NEW
           }),
         });
+
 
         const data = await res.json();
 
@@ -156,8 +177,11 @@ export default function ChatPage() {
         if (data.integrationSignals) setIntegrationSignals(data.integrationSignals);
         if (data.aiSignals) setAiSignals(data.aiSignals);
         if (data.evidence) setEvidence(data.evidence);
-        if (data.opportunityAssessment)
-          setOpportunityAssessment(data.opportunityAssessment);
+        if (data.opportunityAssessment) setOpportunityAssessment(data.opportunityAssessment);
+        // NEW: structured disambiguation state
+        setPendingSelection(data.pendingSelection ?? null);
+        setPendingBusinessMatch(data.pendingBusinessMatch ?? null);
+
       } catch (err) {
         const errorMsg: Message = {
           id: crypto.randomUUID(),
@@ -185,9 +209,11 @@ export default function ChatPage() {
       aiSignals,
       evidence,
       opportunityAssessment,
+      sessionId,
       sidebarExpanded,
     ]
   );
+
 
   // ── Voice: start recording ─────────────────────────────────────────────────
   const startRecording = useCallback(async () => {

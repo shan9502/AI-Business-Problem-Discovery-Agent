@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
       evidence,
       opportunityAssessment,
       inputMode,
+      sessionId,           // NEW: browser session identity
     } = body as {
       message: string;
       conversationId?: number;
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
       evidence?: string[];
       opportunityAssessment?: string;
       inputMode?: "text" | "voice";
+      sessionId?: string;
     };
 
     if (!message || typeof message !== "string") {
@@ -56,22 +58,26 @@ export async function POST(req: NextRequest) {
       aiSignals,
       evidence,
       opportunityAssessment,
-      inputMode
+      inputMode,
+      sessionId
     );
 
     return NextResponse.json({
-      response:       result.finalResponse,
-      conversationId: result.conversationId ?? convId,
-      businessId:     result.businessId,
-      missingFields:  result.missingFields ?? [],
-      askedFields:    result.askedFields ?? [],
-      skippedFields:  result.skippedFields ?? [],
-      problemSignals: result.problemSignals ?? [],
-      automationSignals: result.automationSignals ?? [],
-      integrationSignals: result.integrationSignals ?? [],
-      aiSignals: result.aiSignals ?? [],
-      opportunityAssessment: result.opportunityAssessment,
-      suggestedOptions: result.suggestedOptions,
+      response:             result.finalResponse,
+      conversationId:       result.conversationId ?? convId,
+      businessId:           result.businessId,
+      missingFields:        result.missingFields ?? [],
+      askedFields:          result.askedFields ?? [],
+      skippedFields:        result.skippedFields ?? [],
+      problemSignals:       result.problemSignals ?? [],
+      automationSignals:    result.automationSignals ?? [],
+      integrationSignals:   result.integrationSignals ?? [],
+      aiSignals:            result.aiSignals ?? [],
+      opportunityAssessment:result.opportunityAssessment,
+      suggestedOptions:     result.suggestedOptions ?? [],
+      // NEW: structured UI state
+      pendingSelection:     result.pendingSelection ?? null,
+      pendingBusinessMatch: result.pendingBusinessMatch ?? null,
     });
   } catch (error) {
     console.error("[chat/route] Error:", error);
