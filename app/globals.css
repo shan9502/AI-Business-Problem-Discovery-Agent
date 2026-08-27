@@ -1632,3 +1632,82 @@ body {
   transform: scale(0.96);
 }
 
+/* ── Pending Selection (Disambiguation UI) ──────────────────────────────────── */
+.selection-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-top: 12px;
+  margin-bottom: 16px;
+  max-width: 85%;
+  animation: fadeInUp 0.4s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.selection-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--accent-primary), var(--accent-user));
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.selection-card-hint {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-hint);
+  margin-bottom: 12px;
+  letter-spacing: 0.2px;
+}
+
+.selection-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selection-option-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.selection-option-btn:hover,
+.selection-option-btn:focus-visible {
+  background: rgba(108, 99, 255, 0.1);
+  border-color: var(--accent-primary);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.selection-option-btn:active {
+  transform: scale(0.98);
+}
+
+.selection-option-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.selection-option-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
