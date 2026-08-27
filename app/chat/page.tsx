@@ -162,7 +162,10 @@ export default function ChatPage() {
           content: data.response,
           timestamp: new Date(),
           suggestedOptions: data.suggestedOptions,
+          // Attach pendingSelection so ChatWindow renders disambiguation buttons
+          pendingSelection: data.pendingSelection ?? undefined,
         };
+
 
         setMessages((prev) => [...prev, assistantMsg]);
 
@@ -395,7 +398,9 @@ export default function ChatPage() {
           messages={messages}
           isLoading={isLoading}
           onStarterClick={handleStarterClick}
+          onSelectionClick={handleStarterClick}
         />
+
 
         {/* ── Voice preview card ── */}
         {isPreview && (

@@ -3,18 +3,33 @@
 import React, { useEffect, useRef } from "react";
 import { ChatMessage } from "./ChatMessage";
 
+export interface SelectionOption {
+  id: string;
+  label: string;
+  description?: string;
+}
+
+export interface PendingSelectionData {
+  type: string;
+  question: string;
+  options: SelectionOption[];
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   suggestedOptions?: string[];
+  /** Structured disambiguation selection (multi-business match, etc.) */
+  pendingSelection?: PendingSelectionData;
 }
 
 interface Props {
   messages: Message[];
   isLoading?: boolean;
   onStarterClick?: (text: string) => void;
+  onSelectionClick?: (optionLabel: string) => void;
 }
 
 const STARTER_PROMPTS = [
@@ -24,7 +39,7 @@ const STARTER_PROMPTS = [
   { icon: "📦", text: "A warehouse doing manual inventory tracking daily" },
 ];
 
-export function ChatWindow({ messages, isLoading, onStarterClick }: Props) {
+export function ChatWindow({ messages, isLoading, onStarterClick, onSelectionClick }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,6 +60,8 @@ export function ChatWindow({ messages, isLoading, onStarterClick }: Props) {
             content={msg.content}
             timestamp={msg.timestamp}
           />
+
+          {/* ── Suggested answer chips (short options) ── */}
           {msg.suggestedOptions && msg.suggestedOptions.length > 0 && index === messages.length - 1 && !isLoading && (
             <div className="suggested-options" role="list" aria-label="Suggested answers">
               {msg.suggestedOptions.map((opt) => (
@@ -58,6 +75,29 @@ export function ChatWindow({ messages, isLoading, onStarterClick }: Props) {
                   <span>{opt}</span>
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* ── Pending selection card (business disambiguation) ── */}
+          {msg.pendingSelection && index === messages.length - 1 && !isLoading && (
+            <div className="selection-card" role="group" aria-label={msg.pendingSelection.question}>
+              <p className="selection-card-hint">Choose one, or type your answer below:</p>
+              <div className="selection-options">
+                {msg.pendingSelection.options.map((opt) => (
+                  <button
+                    key={opt.id}
+                    id={`selection-option-${opt.id}`}
+                    className="selection-option-btn"
+                    onClick={() => (onSelectionClick ?? onStarterClick)?.(opt.label)}
+                    aria-label={`Select: ${opt.label}`}
+                  >
+                    <span className="selection-option-label">{opt.label}</span>
+                    {opt.description && (
+                      <span className="selection-option-desc">{opt.description}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </React.Fragment>
